@@ -44,7 +44,7 @@ def comprar_endpoint():
     cfg.read("config.ini")
 
     try:
-        url_pago = comprar(cfg)
+        res = comprar(cfg)
     except RuntimeError as e:
         erro = str(e)
         err(erro)
@@ -56,6 +56,13 @@ def comprar_endpoint():
         enviar_telegram_html(f"<b>ERROR</b> Error inesperado: {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
 
+    if res["tipo"] == "carrito":
+        msg_html = f"<b>Carrito listo</b>\n\n<pre>{res['mensaje']}</pre>"
+        log(res["mensaje"])
+        enviar_telegram_html(msg_html)
+        return jsonify({"ok": True, "tipo": "carrito", "mensaje": res["mensaje"]})
+
+    url_pago = res.get("url", "")
     if not url_pago:
         msg = "Compra completada pero no se recibio URL de pago"
         err(msg)

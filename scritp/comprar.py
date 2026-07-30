@@ -90,6 +90,10 @@ def comprar(cfg):
     r = s.get(url_producto)
     soup = BeautifulSoup(r.text, "html.parser")
 
+    product_name_el = soup.find("h1", class_="product_title")
+    product_name = product_name_el.get_text(strip=True) if product_name_el else "Producto"
+    log(f"Producto: {product_name}")
+
     pid_el = soup.find("button", {"name": "add-to-cart"})
     if not pid_el:
         pid_el = soup.find("input", {"name": "add-to-cart"})
@@ -178,6 +182,17 @@ def comprar(cfg):
         raise RuntimeError("No se pudo añadir el producto al carrito")
     log("Producto añadido al carrito correctamente")
 
+    solo_montar = cfg.getboolean("comportamiento", "solo_montar", fallback=False)
+    if solo_montar:
+        mensaje = (
+            f"Producto añadido al carrito:\n"
+            f"  Producto: {product_name}\n"
+            f"  Cantidad: {cantidad}\n"
+            f"  Ubicación: {chosen_location['name']}"
+        )
+        log("Modo solo_montar activo — deteniendo antes del checkout")
+        return {"tipo": "carrito", "mensaje": mensaje}
+
     # ---- CHECKOUT ----
     log("Accediendo al checkout...")
     r = s.get(f"{BASE}/finalizar-compra/", allow_redirects=True)
@@ -263,18 +278,20 @@ def comprar(cfg):
     else:
         log(f"No se recibio URL de redireccion. Respuesta: {str(resp)[:500]}")
 
-    return redirect_url
+    return {"tipo": "pago", "url": redirect_url}
 
 
 def main():
     cfg = configparser.ConfigParser()
     cfg.read("config.ini")
     try:
-        url = comprar(cfg)
-        if url:
+        res = comprar(cfg)
+        if res["tipo"] == "pago" and res.get("url"):
             with open("url.txt", "w") as f:
-                f.write(url)
+                f.write(res["url"])
             print(f"\nURL guardada en url.txt")
+        elif res["tipo"] == "carrito":
+            print(f"\n{res['mensaje']}")
         return True
     except RuntimeError as e:
         err(str(e))
