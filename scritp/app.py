@@ -23,7 +23,7 @@ def enviar_telegram(mensaje):
     r = requests.post(url, json={
         "chat_id": chat_id,
         "text": mensaje,
-        "disable_web_page_preview": False,
+        "disable_web_page_preview": True,
     })
     if r.status_code == 200:
         log("Mensaje enviado a Telegram")
