@@ -1,0 +1,7 @@
+.agents/
+session.txt
+skills-lock.json
+__pycache__/
+*.pyc
+debug_checkout.html
+url.txt
