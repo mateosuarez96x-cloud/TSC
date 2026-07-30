@@ -11,7 +11,7 @@ from comprar import comprar, log, err
 app = Flask(__name__)
 
 
-def enviar_telegram(mensaje):
+def enviar_telegram_html(texto_html):
     cfg = configparser.ConfigParser()
     cfg.read("config.ini")
     if "telegram" not in cfg:
@@ -22,7 +22,8 @@ def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     r = requests.post(url, json={
         "chat_id": chat_id,
-        "text": mensaje,
+        "text": texto_html,
+        "parse_mode": "HTML",
         "disable_web_page_preview": True,
     })
     if r.status_code == 200:
@@ -47,26 +48,26 @@ def comprar_endpoint():
     except RuntimeError as e:
         erro = str(e)
         err(erro)
-        enviar_telegram(f"[ERROR] Compra fallida: {erro}")
+        enviar_telegram_html(f"<b>ERROR</b> Compra fallida: {erro}")
         return jsonify({"ok": False, "error": erro}), 500
     except Exception as e:
         tb = traceback.format_exc()
         err(f"Error inesperado: {e}\n{tb}")
-        enviar_telegram(f"[ERROR] Error inesperado: {e}")
+        enviar_telegram_html(f"<b>ERROR</b> Error inesperado: {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
 
     if not url_pago:
         msg = "Compra completada pero no se recibio URL de pago"
         err(msg)
-        enviar_telegram(msg)
+        enviar_telegram_html(f"<b>{msg}</b>")
         return jsonify({"ok": False, "error": msg}), 500
 
     msg = (
-        f"Pedido creado exitosamente!\n\n"
-        f"URL de pago: {url_pago}"
+        f"<b>Pedido creado!</b>\n\n"
+        f"<a href=\"{url_pago}\">Abrir pago</a>"
     )
     log(msg)
-    enviar_telegram(msg)
+    enviar_telegram_html(msg)
 
     return jsonify({"ok": True, "url": url_pago})
 
